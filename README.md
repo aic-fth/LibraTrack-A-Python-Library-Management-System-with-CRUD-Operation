@@ -13,8 +13,7 @@ ________________________________________________________________________________
 
 **Pseudocode**
 
-[**Pseudocode**](https://github.com/aic-fth/LibraTrack-A-Python-Library-Management-System-with-CRUD-Operation/blob/b913a5e40ed74b72561f200f62f994acc06e3fbb/LMS-PSEUDOCODE.txt)
-
+[**Pseudocode**](LMS-PSEUDOCODE.txt)
 
 ________________________________________________________________________________________
 
