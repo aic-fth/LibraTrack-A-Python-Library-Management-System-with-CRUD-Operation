@@ -17,3 +17,147 @@ ________________________________________________________________________________
 ________________________________________________________________________________________
 
 
+Pseudocode
+
+FUNCTION add_book()
+    title ← GET entry_title input and strip whitespace
+    author ← GET entry_author input and strip whitespace
+    genre ← GET entry_genre input and strip whitespace
+
+    IF title = "" OR author = "" OR genre = "" THEN
+        SHOW warning message "Please fill all fields!"
+    ELSE
+        book_id ← "BK-" + format(len(books) + 1, "04d")
+        books[book_id] ← (title, author, genre)
+        CALL refresh_table()
+        CALL clear_entries()
+        SHOW info message "Book added with ID " + book_id
+    END IF
+END FUNCTION
+
+FUNCTION delete_book()
+    selected ← GET selected item from book_table
+    IF selected is not empty THEN
+        book_id ← GET values[1] from selected item
+        IF book_id exists in books THEN
+            DELETE books[book_id]
+            CALL refresh_table()
+            SHOW info message "Book " + book_id + " deleted successfully."
+        END IF
+    ELSE
+        SHOW warning message "Please select a book to delete."
+    END IF
+END FUNCTION
+
+FUNCTION update_book()
+    search_id ← GET entry_search input and strip whitespace
+    IF search_id = "" THEN
+        SHOW warning message "Please enter a Book ID to search for updating!"
+        RETURN
+    END IF
+
+    IF search_id exists in books THEN
+        title ← GET entry_title input and strip whitespace
+        author ← GET entry_author input and strip whitespace
+        genre ← GET entry_genre input and strip whitespace
+
+        IF title = "" OR author = "" OR genre = "" THEN
+            SHOW warning message "Please fill all fields to update the book!"
+            RETURN
+        END IF
+
+        books[search_id] ← (title, author, genre)
+        CALL refresh_table()
+        CALL clear_entries()
+        SHOW info message "Book " + search_id + " updated successfully."
+    ELSE
+        SHOW info message "Book ID not found."
+    END IF
+END FUNCTION
+
+FUNCTION remove_book()
+    search_id ← GET entry_search input and strip whitespace
+    IF search_id = "" THEN
+        SHOW warning message "Please enter a Book ID to search for removal!"
+        RETURN
+    END IF
+
+    IF search_id exists in books THEN
+        DELETE books[search_id]
+        CALL refresh_table()
+        CALL clear_entries()
+        SHOW info message "Book " + search_id + " removed successfully."
+    ELSE
+        SHOW info message "Book ID not found."
+    END IF
+END FUNCTION
+
+FUNCTION search_book()
+    search_id ← GET entry_search input and strip whitespace
+    IF search_id = "" THEN
+        SHOW warning message "Please enter a Book ID to search!"
+        RETURN
+    END IF
+
+    IF search_id exists in books THEN
+        (title, author, genre) ← books[search_id]
+        CLEAR entry_title, entry_author, entry_genre
+        SET entry_title to title
+        SET entry_author to author
+        SET entry_genre to genre
+        CALL highlight_row(search_id)
+    ELSE
+        SHOW info message "Book ID not found."
+    END IF
+END FUNCTION
+
+FUNCTION refresh_table()
+    CLEAR all rows in book_table
+    FOR EACH (book_id, (title, author, genre)) in books DO
+        INSERT (title, book_id, author, genre) into book_table
+    END FOR
+END FUNCTION
+
+FUNCTION clear_entries()
+    CLEAR entry_title, entry_author, entry_genre, entry_search
+END FUNCTION
+
+FUNCTION highlight_row(book_id)
+    FOR EACH row in book_table DO
+        IF row values[1] = book_id THEN
+            SELECT row
+            FOCUS row
+            SCROLL to row
+            BREAK
+        END IF
+    END FOR
+END FUNCTION
+
+FUNCTION exit_app()
+    CLOSE the window
+END FUNCTION
+
+MAIN PROGRAM
+    CREATE main window with title "Library Management System"
+    SET size to 700x600
+    SET background color to "#D8B897"
+
+    INITIALIZE books as empty dictionary
+
+    DISPLAY header label
+
+    CREATE search section with entry_search and Search button
+
+    CREATE form section with fields: entry_title, entry_author, entry_genre
+
+    CREATE button section with: Add Book, Update Book, Remove Book, Exit
+
+    CREATE book_table with columns: Title, ID, Author, Genre
+    APPLY styling to Treeview
+
+    DISPLAY book_table
+
+    START main event loop
+END PROGRAM
+
+
