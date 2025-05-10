@@ -7,3 +7,7 @@ LibraTrack is a lightweight Python-based Library Management System featuring a d
 
 
 
+git remote add upstream https://github.com/aic-fth/LibraTrack-A-Python-Library-Man.agement-System-with-CRUD-Operation-practice/blob/71fb425f9583f4e39aaf325119055f4b9d3d1133/LMS-CODE.txt
+git fetch upstream
+git pull upstream master
+git push
