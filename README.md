@@ -11,4 +11,9 @@ ________________________________________________________________________________
 ________________________________________________________________________________________
 
 
-``` https://github.com/aic-fth/LibraTrack-A-Python-Library-Management-System-with-CRUD-Operation/blob/f1a037ae4f61f5e93987fbb3eaeb3c3f98258b18/LMS-PSEUDOCODE.txt  ``` 
+[Link Text](https://github.com/aic-fth/LibraTrack-A-Python-Library-Management-System-with-CRUD-Operation/blob/f1a037ae4f61f5e93987fbb3eaeb3c3f98258b18/LMS-PSEUDOCODE.txt)
+
+
+________________________________________________________________________________________
+
+
