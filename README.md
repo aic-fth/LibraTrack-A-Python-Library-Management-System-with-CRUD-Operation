@@ -5,7 +5,7 @@ LibraTrack is a lightweight Python-based Library Management System featuring a d
 ________________________________________________________________________________________
 
 
-![image alt](https://github.com/aic-fth/LibraTrack-A-Python-Library-Management-System-with-CRUD-Operation/blob/main/Library%20Image.png?raw=true)
+![image alt](https://github.com/aic-fth/LibraTrack-A-Python-Library-Management-System-with-CRUD-Operation/blob/0d5074a9c378236dadfb5262c215ba976a0a9bd3/LMS-Image.png)
 
 
 ________________________________________________________________________________________
