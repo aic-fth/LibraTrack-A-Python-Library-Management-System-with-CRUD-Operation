@@ -108,12 +108,12 @@ def exit_app():
 
 window = tk.Tk()
 window.title("Library Management System")
-window.geometry("700x600")
+window.geometry("900x650")
 window.configure(bg="#D8B897")
 
 books = {}
 
-tk.Label(window, text="Library Management System", font=("Arial", 24, "bold"), bg="#8D6E63", fg="white").pack(fill=tk.X, pady=10)
+tk.Label(window, text="Library Management System", font=("Arial", 24, "bold"), bg="#8D463E", fg="white").pack(fill=tk.X, pady=10)
 
 
 frame_search = tk.Frame(window, bg="#D8B897")
