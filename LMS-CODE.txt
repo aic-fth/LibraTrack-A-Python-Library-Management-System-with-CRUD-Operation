@@ -1,166 +1,447 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
 
+# ─────────────────────────────────────────────
+#  PALETTE  — white & nude
+# ─────────────────────────────────────────────
+BG          = "#FAF8F5"       # warm white page
+SURFACE     = "#F3EFE9"       # nude white sidebar
+CARD        = "#EDE8E0"       # soft linen card
+CARD2       = "#E6E0D6"       # slightly deeper linen
+BORDER      = "#D9D2C5"       # warm stone divider
 
-def add_book():
-    title = entry_title.get().strip()
-    author = entry_author.get().strip()
-    genre = entry_genre.get().strip()
+ROSE        = "#C4956A"       # nude-rose accent (terracotta-nude)
+ROSE_LIGHT  = "#D4A882"       # lighter hover
+ROSE_DIM    = "#A07550"       # dimmed / pressed
+ROSE_BG     = "#F5ECE3"       # tinted bg for badge/chip
 
-    if title == "" or author == "" or genre == "":
-        messagebox.showwarning("Warning", "Please fill all fields!")
+GREEN       = "#6B9E7E"       # muted sage green
+GREEN_BG    = "#EAF2ED"       # sage tint bg
+RED         = "#B85C5C"       # muted red
+RED_BG      = "#F5E8E8"       # red tint bg
+RED_HOVER   = "#A04040"       # deeper red hover
+
+TEXT        = "#2C2825"       # warm near-black
+TEXT_SUB    = "#7A6F65"       # warm medium brown-gray
+TEXT_DIM    = "#B0A89E"       # light warm gray
+TEXT_ACC    = "#C4956A"       # accent text (rose)
+
+MONO        = ("Consolas", 10)
+UI          = ("Segoe UI", 10)
+UI_SM       = ("Segoe UI", 9)
+UI_B        = ("Segoe UI", 10, "bold")
+UI_LG       = ("Segoe UI", 13, "bold")
+UI_XL       = ("Segoe UI", 20, "bold")
+UI_CAPS     = ("Segoe UI", 8, "bold")
+
+# ─────────────────────────────────────────────
+#  STATE
+# ─────────────────────────────────────────────
+books       = {}
+next_id     = [1]
+_after      = [None]
+_mode       = ["add"]
+
+# ─────────────────────────────────────────────
+#  HELPERS
+# ─────────────────────────────────────────────
+def gen_id():
+    bid = f"BK-{next_id[0]:04d}"
+    next_id[0] += 1
+    return bid
+
+def toast(msg, color=GREEN):
+    toast_label.config(text=msg, fg=color)
+    toast_bar.config(bg=color)
+    if _after[0]:
+        root.after_cancel(_after[0])
+    _after[0] = root.after(3200, lambda: (
+        toast_label.config(text="  Ready", fg=TEXT_SUB),
+        toast_bar.config(bg=BORDER)
+    ))
+
+def set_mode(mode):
+    _mode[0] = mode
+    if mode == "add":
+        add_btn.config(text="  Add Book", bg=ROSE, fg="#FFFFFF",
+                       activebackground=ROSE_LIGHT)
+        add_btn.bind("<Enter>", lambda e: add_btn.config(bg=ROSE_LIGHT))
+        add_btn.bind("<Leave>", lambda e: add_btn.config(bg=ROSE))
+        mode_label.config(text="NEW BOOK", fg=ROSE, bg=ROSE_BG)
+        id_display.config(text="ID will be assigned", fg=TEXT_DIM)
+        clear_form_fields()
     else:
-        book_id = f"BK-{len(books) + 1:04d}"
-        books[book_id] = (title, author, genre)
-        refresh_table()
-        clear_entries()
-        messagebox.showinfo("Success", f"Book added with ID {book_id}")
+        add_btn.config(text="  Save Changes", bg=GREEN, fg="#FFFFFF",
+                       activebackground="#82B894")
+        add_btn.bind("<Enter>", lambda e: add_btn.config(bg="#82B894"))
+        add_btn.bind("<Leave>", lambda e: add_btn.config(bg=GREEN))
+        mode_label.config(text="EDITING", fg=GREEN, bg=GREEN_BG)
 
-def delete_book():
-    selected = book_table.selection()
-    if selected:
-        book_id = book_table.item(selected[0])['values'][1]
-        if book_id in books:
-            del books[book_id]
-            refresh_table()
-            messagebox.showinfo("Deleted", f"Book {book_id} deleted successfully.")
-    else:
-        messagebox.showwarning("Warning", "Please select a book to delete.")
-
-def update_book():
-    search_id = entry_search.get().strip()
-    if search_id == "":
-        messagebox.showwarning("Warning", "Please enter a Book ID to search for updating!")
-        return
-
-    if search_id in books:
-        title = entry_title.get().strip()
-        author = entry_author.get().strip()
-        genre = entry_genre.get().strip()
-
-        if title == "" or author == "" or genre == "":
-            messagebox.showwarning("Warning", "Please fill all fields to update the book!")
-            return
-        
-        books[search_id] = (title, author, genre)
-        refresh_table()
-        clear_entries()
-        messagebox.showinfo("Updated", f"Book {search_id} updated successfully.")
-    else:
-        messagebox.showinfo("Not Found", "Book ID not found.")
-
-def remove_book():
-    search_id = entry_search.get().strip()
-    if search_id == "":
-        messagebox.showwarning("Warning", "Please enter a Book ID to search for removal!")
-        return
-
-    if search_id in books:
-        del books[search_id]
-        refresh_table()
-        clear_entries()
-        messagebox.showinfo("Removed", f"Book {search_id} removed successfully.")
-    else:
-        messagebox.showinfo("Not Found", "Book ID not found.")
-
-def search_book():
-    search_id = entry_search.get().strip()
-    if search_id == "":
-        messagebox.showwarning("Warning", "Please enter a Book ID to search!")
-        return
-
-    if search_id in books:
-        title, author, genre = books[search_id]
-        entry_title.delete(0, tk.END)
-        entry_author.delete(0, tk.END)
-        entry_genre.delete(0, tk.END)
-
-        entry_title.insert(0, title)
-        entry_author.insert(0, author)
-        entry_genre.insert(0, genre)
-
-        highlight_row(search_id)
-    else:
-        messagebox.showinfo("Not Found", "Book ID not found.")
-
-def refresh_table():
+def refresh_table(select_id=None):
     book_table.delete(*book_table.get_children())
-    for book_id, (title, author, genre) in books.items():
-        book_table.insert("", tk.END, values=(title, book_id, author, genre))
+    for i, (bid, (t, a, g)) in enumerate(books.items()):
+        tag = "odd" if i % 2 == 0 else "even"
+        book_table.insert("", tk.END, iid=bid,
+                          values=(bid, t, a, g), tags=(tag,))
+    update_stats()
+    if select_id and select_id in books:
+        book_table.selection_set(select_id)
+        book_table.see(select_id)
 
-def clear_entries():
-    entry_title.delete(0, tk.END)
-    entry_author.delete(0, tk.END)
-    entry_genre.delete(0, tk.END)
-    entry_search.delete(0, tk.END)
+def update_stats():
+    n = len(books)
+    stat_num.config(text=str(n))
+    stat_sub.config(text="book" if n == 1 else "books")
 
-def highlight_row(book_id):
-    for item in book_table.get_children():
-        if book_table.item(item, "values")[1] == book_id:
-            book_table.selection_set(item)
-            book_table.focus(item)
-            book_table.see(item)
-            break
+def clear_form_fields():
+    for e in (ent_title, ent_author, ent_genre):
+        e.delete(0, tk.END)
+    search_var.set("")
+    id_display.config(text="ID will be assigned", fg=TEXT_DIM)
 
-def exit_app():
-    window.destroy()
+def full_clear():
+    clear_form_fields()
+    book_table.selection_remove(*book_table.selection())
+    set_mode("add")
+    ent_title.focus()
 
+def fill_form(bid):
+    t, a, g = books[bid]
+    ent_title.delete(0, tk.END);  ent_title.insert(0, t)
+    ent_author.delete(0, tk.END); ent_author.insert(0, a)
+    ent_genre.delete(0, tk.END);  ent_genre.insert(0, g)
+    search_var.set(bid)
+    id_display.config(text=bid, fg=ROSE)
+    set_mode("edit")
 
-window = tk.Tk()
-window.title("Library Management System")
-window.geometry("900x650")
-window.configure(bg="#D8B897")
+def on_row_select(event=None):
+    sel = book_table.selection()
+    if sel:
+        fill_form(sel[0])
 
-books = {}
+# ─────────────────────────────────────────────
+#  CRUD ACTIONS
+# ─────────────────────────────────────────────
+def action_add_or_save():
+    t = ent_title.get().strip()
+    a = ent_author.get().strip()
+    g = ent_genre.get().strip()
+    if not t or not a or not g:
+        toast("  Fill in all three fields.", RED)
+        return
+    if _mode[0] == "add":
+        bid = gen_id()
+        books[bid] = (t, a, g)
+        refresh_table(bid)
+        toast(f"  Added  {bid} — {t}", GREEN)
+        full_clear()
+    else:
+        bid = search_var.get().strip().upper()
+        if bid not in books:
+            toast("  Book ID not found. Cannot save.", RED)
+            return
+        books[bid] = (t, a, g)
+        refresh_table(bid)
+        toast(f"  Saved  {bid} — {t}", GREEN)
+        full_clear()
 
-tk.Label(window, text="Library Management System", font=("Arial", 24, "bold"), bg="#8D463E", fg="white").pack(fill=tk.X, pady=10)
+def action_delete():
+    sel = book_table.selection()
+    bid_field = search_var.get().strip().upper()
+    bid = sel[0] if sel else (bid_field if bid_field in books else None)
+    if not bid:
+        toast("  Select a row or enter an ID to delete.", RED)
+        return
+    if bid not in books:
+        toast(f"  {bid} not found.", RED)
+        return
+    title = books[bid][0]
+    ok = messagebox.askyesno("Delete Book",
+        f'Delete "{title}" ({bid})?\n\nThis cannot be undone.',
+        icon="warning")
+    if ok:
+        del books[bid]
+        refresh_table()
+        toast(f"  Deleted  {bid} — {title}", ROSE)
+        full_clear()
 
+def action_search():
+    q = search_var.get().strip().upper()
+    if not q:
+        toast("  Enter a Book ID to search.", RED)
+        return
+    if q in books:
+        fill_form(q)
+        book_table.selection_set(q)
+        book_table.see(q)
+        toast(f"  Found  {q} — {books[q][0]}", GREEN)
+    else:
+        toast(f"  No book with ID  {q}", RED)
 
-frame_search = tk.Frame(window, bg="#D8B897")
-frame_search.pack(pady=5)
+def action_exit():
+    if messagebox.askokcancel("Exit", "Close LibraTrack?"):
+        root.destroy()
 
-tk.Label(frame_search, text="Search Book ID:", bg="#D8B897", font=("Arial", 12)).pack(side=tk.LEFT, padx=5)
-entry_search = tk.Entry(frame_search, width=20, font=("Arial", 12))
-entry_search.pack(side=tk.LEFT, padx=5)
-tk.Button(frame_search, text="Search", command=search_book, bg="#A9746E", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=5)
+# ─────────────────────────────────────────────
+#  WIDGET FACTORY
+# ─────────────────────────────────────────────
+def btn(parent, text, cmd, bg=CARD2, fg=TEXT,
+        hbg=BORDER, hfg=TEXT, font=UI_B,
+        padx=16, pady=9, width=0, anchor="center"):
+    b = tk.Button(parent, text=text, command=cmd,
+                  bg=bg, fg=fg, activebackground=hbg, activeforeground=hfg,
+                  font=font, relief="flat", bd=0, cursor="hand2",
+                  padx=padx, pady=pady, width=width, anchor=anchor)
+    b.bind("<Enter>", lambda e: b.config(bg=hbg, fg=hfg))
+    b.bind("<Leave>", lambda e: b.config(bg=bg,  fg=fg))
+    return b
 
+def field(parent, label):
+    wrap = tk.Frame(parent, bg=SURFACE)
+    wrap.pack(fill=tk.X, pady=(0, 10))
+    tk.Label(wrap, text=label, font=UI_SM, bg=SURFACE, fg=TEXT_SUB
+             ).pack(anchor="w", pady=(0, 3))
+    e = tk.Entry(wrap, font=UI, bg="#FFFFFF", fg=TEXT,
+                 insertbackground=ROSE, relief="flat",
+                 highlightthickness=1,
+                 highlightbackground=BORDER,
+                 highlightcolor=ROSE, bd=0)
+    e.pack(fill=tk.X, ipady=7)
+    return e
 
-frame_form = tk.Frame(window, bg="#D8B897")
-frame_form.pack(pady=10)
+def divider(parent, pady=10):
+    tk.Frame(parent, bg=BORDER, height=1).pack(fill=tk.X, pady=pady)
 
-tk.Label(frame_form, text="Book Title:", bg="#D8B897", font=("Arial", 12)).grid(row=0, column=0, pady=5, sticky="w")
-entry_title = tk.Entry(frame_form, width=30, font=("Arial", 12))
-entry_title.grid(row=0, column=1, pady=5, padx=10)
+def caps_label(parent, text):
+    tk.Label(parent, text=text, font=UI_CAPS,
+             bg=SURFACE, fg=TEXT_DIM).pack(anchor="w", pady=(12, 4))
 
-tk.Label(frame_form, text="Author Name:", bg="#D8B897", font=("Arial", 12)).grid(row=1, column=0, pady=5, sticky="w")
-entry_author = tk.Entry(frame_form, width=30, font=("Arial", 12))
-entry_author.grid(row=1, column=1, pady=5, padx=10)
+# ─────────────────────────────────────────────
+#  ROOT
+# ─────────────────────────────────────────────
+root = tk.Tk()
+root.title("LibraTrack")
+root.geometry("1100x720")
+root.minsize(920, 600)
+root.configure(bg=BG)
 
-tk.Label(frame_form, text="Genre:", bg="#D8B897", font=("Arial", 12)).grid(row=2, column=0, pady=5, sticky="w")
-entry_genre = tk.Entry(frame_form, width=30, font=("Arial", 12))
-entry_genre.grid(row=2, column=1, pady=5, padx=10)
+# ─────────────────────────────────────────────
+#  HEADER
+# ─────────────────────────────────────────────
+header = tk.Frame(root, bg="#FFFFFF", pady=0)
+header.pack(fill=tk.X)
 
+brand = tk.Frame(header, bg="#FFFFFF", padx=24, pady=15)
+brand.pack(side=tk.LEFT)
+tk.Label(brand, text="LibraTrack", font=UI_XL,
+         bg="#FFFFFF", fg=TEXT).pack(side=tk.LEFT)
+tk.Label(brand, text="  /  Library Management", font=UI,
+         bg="#FFFFFF", fg=TEXT_SUB).pack(side=tk.LEFT, pady=(4, 0))
 
-frame_buttons = tk.Frame(window, bg="#D8B897")
-frame_buttons.pack(pady=10)
+# stat badge
+badge = tk.Frame(header, bg=ROSE_BG, padx=20, pady=10)
+badge.pack(side=tk.RIGHT, padx=20, pady=10)
+stat_num = tk.Label(badge, text="0", font=("Segoe UI", 26, "bold"),
+                    bg=ROSE_BG, fg=ROSE)
+stat_num.pack(side=tk.LEFT)
+stat_sub = tk.Label(badge, text="books", font=UI_SM,
+                    bg=ROSE_BG, fg=TEXT_SUB)
+stat_sub.pack(side=tk.LEFT, padx=(6, 0), pady=(6, 0))
 
-tk.Button(frame_buttons, text="Add Book", width=12, command=add_book, bg="#A9746E", fg="white", font=("Arial", 12)).grid(row=0, column=0, padx=5)
-tk.Button(frame_buttons, text="Update Book", width=12, command=update_book, bg="#A9746E", fg="white", font=("Arial", 12)).grid(row=0, column=1, padx=5)
-tk.Button(frame_buttons, text="Remove Book", width=12, command=remove_book, bg="#A9746E", fg="white", font=("Arial", 12)).grid(row=0, column=2, padx=5)
-tk.Button(frame_buttons, text="Exit", width=12, command=exit_app, bg="#A9746E", fg="white", font=("Arial", 12)).grid(row=0, column=4, padx=5)
+# rose rule
+tk.Frame(root, bg=ROSE, height=2).pack(fill=tk.X)
 
+# ─────────────────────────────────────────────
+#  BODY
+# ─────────────────────────────────────────────
+body = tk.Frame(root, bg=BG)
+body.pack(fill=tk.BOTH, expand=True)
 
-columns = ("Title", "ID", "Author", "Genre")
-book_table = ttk.Treeview(window, columns=columns, show="headings", style="Treeview.Heading")
-for col in columns:
-    book_table.heading(col, text=col, anchor="center")
-    book_table.column(col, anchor="center", width=150)
+# ── LEFT SIDEBAR ──────────────────────────────
+sidebar = tk.Frame(body, bg=SURFACE, width=300)
+sidebar.pack(side=tk.LEFT, fill=tk.Y)
+sidebar.pack_propagate(False)
 
+# subtle right border on sidebar
+tk.Frame(body, bg=BORDER, width=1).pack(side=tk.LEFT, fill=tk.Y)
 
+inner = tk.Frame(sidebar, bg=SURFACE, padx=22, pady=18)
+inner.pack(fill=tk.BOTH, expand=True)
+
+# Mode chip
+mode_row = tk.Frame(inner, bg=SURFACE)
+mode_row.pack(fill=tk.X, pady=(0, 6))
+mode_label = tk.Label(mode_row, text="NEW BOOK", font=UI_CAPS,
+                      bg=ROSE_BG, fg=ROSE, padx=10, pady=5)
+mode_label.pack(side=tk.LEFT)
+
+# ID display
+id_display = tk.Label(inner, text="ID will be assigned",
+                      font=MONO, bg=SURFACE, fg=TEXT_DIM)
+id_display.pack(anchor="w", pady=(0, 4))
+
+divider(inner, pady=8)
+
+# ── Search ──
+caps_label(inner, "SEARCH BY ID")
+search_row = tk.Frame(inner, bg=SURFACE)
+search_row.pack(fill=tk.X, pady=(0, 4))
+
+search_var = tk.StringVar()
+search_entry = tk.Entry(search_row, textvariable=search_var,
+                        font=MONO, bg="#FFFFFF", fg=ROSE,
+                        insertbackground=ROSE, relief="flat",
+                        highlightthickness=1,
+                        highlightbackground=BORDER,
+                        highlightcolor=ROSE, bd=0)
+search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=7)
+search_entry.bind("<Return>", lambda e: action_search())
+
+srch_btn = btn(search_row, "Go", action_search,
+               bg=ROSE_DIM, fg="#FFFFFF", hbg=ROSE, hfg="#FFFFFF",
+               padx=14, pady=7)
+srch_btn.pack(side=tk.LEFT, padx=(6, 0))
+
+divider(inner, pady=10)
+
+# ── Form fields ──
+caps_label(inner, "BOOK DETAILS")
+ent_title  = field(inner, "Title")
+ent_author = field(inner, "Author")
+ent_genre  = field(inner, "Genre")
+
+divider(inner, pady=10)
+
+# ── Actions ──
+caps_label(inner, "ACTIONS")
+
+add_btn = tk.Button(inner, text="  Add Book", command=action_add_or_save,
+                    bg=ROSE, fg="#FFFFFF", activebackground=ROSE_LIGHT,
+                    activeforeground="#FFFFFF", font=UI_LG,
+                    relief="flat", bd=0, cursor="hand2",
+                    padx=0, pady=11, anchor="center")
+add_btn.pack(fill=tk.X, pady=(4, 6))
+add_btn.bind("<Enter>", lambda e: add_btn.config(bg=ROSE_LIGHT))
+add_btn.bind("<Leave>", lambda e: add_btn.config(bg=ROSE))
+
+sec_row = tk.Frame(inner, bg=SURFACE)
+sec_row.pack(fill=tk.X, pady=(0, 4))
+
+del_btn = btn(sec_row, "  Delete", action_delete,
+              bg=RED_BG, fg=RED, hbg=RED_HOVER, hfg="#FFFFFF",
+              padx=0, pady=9, anchor="center")
+del_btn.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+
+clr_btn = btn(sec_row, "  Clear", full_clear,
+              bg=CARD, fg=TEXT_SUB, hbg=CARD2, hfg=TEXT,
+              padx=0, pady=9, anchor="center")
+clr_btn.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+# spacer + exit
+tk.Frame(inner, bg=SURFACE).pack(fill=tk.BOTH, expand=True)
+
+divider(inner, pady=8)
+exit_btn = btn(inner, "Exit", action_exit,
+               bg=SURFACE, fg=TEXT_DIM, hbg=CARD, hfg=TEXT_SUB,
+               padx=0, pady=7, anchor="center")
+exit_btn.pack(fill=tk.X)
+
+# ── RIGHT MAIN AREA ───────────────────────────
+right = tk.Frame(body, bg=BG)
+right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+toolbar = tk.Frame(right, bg=BG, padx=20, pady=14)
+toolbar.pack(fill=tk.X)
+tk.Label(toolbar, text="Collection", font=UI_LG,
+         bg=BG, fg=TEXT).pack(side=tk.LEFT)
+tk.Label(toolbar, text="  Click a row to select and edit",
+         font=UI_SM, bg=BG, fg=TEXT_DIM).pack(side=tk.LEFT, pady=(3, 0))
+
+# ── Treeview ──
 style = ttk.Style()
-style.configure("Treeview.Heading", font=("Arial", 10))  
-style.configure("Treeview", font=("Arial", 10))  
+style.theme_use("clam")
+style.configure("T.Treeview",
+    background="#FFFFFF", foreground=TEXT,
+    fieldbackground="#FFFFFF",
+    rowheight=38, font=UI,
+    borderwidth=0, relief="flat",
+)
+style.configure("T.Treeview.Heading",
+    background=SURFACE, foreground=TEXT_SUB,
+    font=UI_CAPS, relief="flat", borderwidth=0,
+    padding=(8, 8)
+)
+style.map("T.Treeview",
+    background=[("selected", ROSE_BG)],
+    foreground=[("selected", ROSE)]
+)
+style.map("T.Treeview.Heading",
+    background=[("active", CARD)]
+)
+style.configure("Nude.Vertical.TScrollbar",
+    troughcolor=BG, background=BORDER,
+    arrowcolor=TEXT_DIM, borderwidth=0, relief="flat")
+style.map("Nude.Vertical.TScrollbar",
+    background=[("active", TEXT_DIM)])
 
-book_table.pack(pady=10, fill=tk.BOTH, expand=True)
+tbl_wrap = tk.Frame(right, bg=BG, padx=20, pady=0)
+tbl_wrap.pack(fill=tk.BOTH, expand=True)
 
-window.mainloop()
+vsb = ttk.Scrollbar(tbl_wrap, orient="vertical",
+                    style="Nude.Vertical.TScrollbar")
+vsb.pack(side=tk.RIGHT, fill=tk.Y)
+
+cols = ("ID", "Title", "Author", "Genre")
+book_table = ttk.Treeview(tbl_wrap, columns=cols, show="headings",
+                           style="T.Treeview",
+                           yscrollcommand=vsb.set,
+                           selectmode="browse")
+vsb.config(command=book_table.yview)
+
+widths = {"ID": 110, "Title": 290, "Author": 200, "Genre": 130}
+for c in cols:
+    book_table.heading(c, text=c)
+    book_table.column(c, width=widths[c], minwidth=60,
+                      anchor="w" if c != "ID" else "center")
+
+book_table.tag_configure("odd",  background="#FFFFFF")
+book_table.tag_configure("even", background=BG)
+book_table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+book_table.bind("<<TreeviewSelect>>", on_row_select)
+
+# ── STATUS BAR ───────────────────────────────
+status_bar = tk.Frame(root, bg=SURFACE, pady=0)
+status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+
+# top border on status bar
+tk.Frame(root, bg=BORDER, height=1).pack(fill=tk.X, side=tk.BOTTOM)
+
+toast_bar = tk.Frame(status_bar, bg=BORDER, width=3)
+toast_bar.pack(side=tk.LEFT, fill=tk.Y)
+
+toast_label = tk.Label(status_bar, text="  Ready", font=UI_SM,
+                       bg=SURFACE, fg=TEXT_SUB, pady=7)
+toast_label.pack(side=tk.LEFT, padx=8)
+
+tk.Label(status_bar,
+         text=f"LibraTrack  ·  {datetime.now().year}  ·  BSU",
+         font=UI_SM, bg=SURFACE, fg=TEXT_DIM
+         ).pack(side=tk.RIGHT, padx=16, pady=7)
+
+# ─────────────────────────────────────────────
+#  SEED DATA
+# ─────────────────────────────────────────────
+for t, a, g in [
+    ("The Midnight Library",    "Matt Haig",             "Fiction"),
+    ("Atomic Habits",           "James Clear",           "Self-Help"),
+    ("Dune",                    "Frank Herbert",         "Sci-Fi"),
+    ("The Great Gatsby",        "F. Scott Fitzgerald",   "Classic"),
+    ("Sapiens",                 "Yuval Noah Harari",     "Non-Fiction"),
+]:
+    bid = gen_id()
+    books[bid] = (t, a, g)
+
+refresh_table()
+ent_title.focus()
+root.mainloop()
